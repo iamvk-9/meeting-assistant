@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Assistant</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6B68'/%3E%3Cg fill='white'%3E%3Crect x='6' y='13' width='3' height='6' rx='1.5'/%3E%3Crect x='11.5' y='8' width='3' height='16' rx='1.5'/%3E%3Crect x='17' y='11' width='3' height='10' rx='1.5'/%3E%3Crect x='22.5' y='14' width='3' height='4' rx='1.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f1f4f3; --surface:#ffffff; --ink:#0f1b20; --muted:#56666d; --line:#d6dee0; --rule:#e6ecee; --wash:#e7eeee;
+  --accent:#0b6b68; --accent-ink:#ffffff; --accent-soft:#dcecea;
+  --rec:#e5322d; --danger:#b3261e;
+  --ok:#0b6b68; --busy:#e5322d; --bad:#b3261e; --idle:#7b8a91;
+  --bar-off:#cfd9db;
+  --display:"Bricolage Grotesque","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0c1417; --surface:#132026; --ink:#e8f0f1; --muted:#93a5ab; --line:#26373e; --rule:#1d2d33; --wash:#172a30;
+  --accent:#4fc4bd; --accent-ink:#04201f; --accent-soft:#143a3b;
+  --rec:#ff6b64; --danger:#ff8f86;
+  --ok:#4fc4bd; --busy:#ff6b64; --bad:#ff8f86; --idle:#6f8289; --bar-off:#2a3d44;
+}}
+*{box-sizing:border-box}
+html{scroll-padding-top:4.5rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h3{font-family:var(--display);margin:0;line-height:1.1}
+h1{font-size:clamp(1.9rem,4.2vw,2.7rem);font-weight:700;letter-spacing:-.025em;text-wrap:balance}
+h3{font:600 1rem/1.3 var(--sans)}
+
+/* ---- top bar ---- */
+.topbar{display:flex;align-items:center;gap:1.5rem;padding:.7rem clamp(1rem,4vw,2.5rem);background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:.6rem;font:700 1.15rem var(--display);letter-spacing:-.01em;color:var(--ink);text-decoration:none;margin-right:auto}
+.brand svg{width:1.7rem;height:1.7rem;flex:none}
+.brand rect.bg{fill:var(--accent)} .brand g{fill:var(--accent-ink)}
+.topbar nav{display:flex;gap:.2rem}
+.topbar nav a{padding:.4rem .85rem;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:500;font-size:.95rem}
+.topbar nav a:hover{color:var(--ink)}
+.topbar nav a[aria-current=page]{background:var(--ink);color:var(--paper)}
+main{max-width:70rem;margin:0 auto;padding:clamp(1.5rem,4vw,3rem) clamp(1rem,4vw,2.5rem) 5rem}
+
+/* ---- controls ---- */
+.btn,button{font:600 .92rem var(--sans);padding:.6rem 1.1rem;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;transition:background .15s,border-color .15s,transform .1s}
+.btn:hover,button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(1px)}
+.btn.ghost,button.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover,button.ghost:hover:not(:disabled){border-color:var(--ink);filter:none}
+button.link{background:none;border:0;padding:.3rem 0;color:var(--danger);font-weight:500;justify-content:flex-start}
+button.link:hover:not(:disabled){text-decoration:underline;filter:none}
+button:disabled{opacity:.55;cursor:progress}
+input[type=text],input[type=search],textarea,select{width:100%;font:inherit;padding:.65rem .8rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);transition:border-color .15s}
+input[type=text]:hover,input[type=search]:hover,textarea:hover,select:hover{border-color:var(--muted)}
+input[type=text]:focus,input[type=search]:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+label{display:block;font-weight:600;font-size:.92rem;margin-bottom:.35rem}
+.hint{color:var(--muted);font-size:.86rem;font-weight:400}
+.field{margin-bottom:1.2rem}
+.muted{color:var(--muted)}
+.back{display:inline-block;color:var(--muted);text-decoration:none;font-size:.9rem;margin-bottom:1rem}
+.back:hover{color:var(--ink)}
+
+/* ---- status ---- */
+.status{display:inline-flex;align-items:center;gap:.5rem;font-size:.88rem;font-weight:600;white-space:nowrap}
+.status::before{content:"";width:.6rem;height:.6rem;border-radius:50%;background:var(--idle);flex:none}
+.status.completed::before{background:var(--ok)}
+.status.failed::before{background:var(--bad)}
+.status.queued::before,.status.transcribing::before,.status.summarizing::before{background:var(--busy);animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* ---- list ---- */
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.75rem;flex-wrap:wrap}
+.page-head p{margin:.4rem 0 0}
+.searchbar{position:relative;max-width:30rem}
+.searchbar svg{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);width:1.05rem;height:1.05rem;color:var(--muted);pointer-events:none}
+.searchbar input{padding-left:2.5rem}
+.list{margin-top:1.5rem}
+.list .row:first-child{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.25rem 1.5rem;padding:1.05rem .75rem;margin:0 -.75rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;transition:background .15s}
+.row:hover{background:var(--surface)}
+.row strong{font:600 1.12rem/1.3 var(--display);letter-spacing:-.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row small{color:var(--muted);grid-column:1}
+.row .status{grid-row:1 / span 2;grid-column:2}
+.empty{padding:3.5rem 1rem;text-align:center;color:var(--muted)}
+.empty .wave{max-width:12rem;margin:0 auto 1.25rem;height:2.4rem}
+.empty strong{display:block;color:var(--ink);font:600 1.15rem var(--display);margin-bottom:.3rem}
+
+/* ---- waveform (decorative + progress) ---- */
+.wave{display:flex;align-items:center;gap:3px;height:3.2rem}
+.wave span{flex:1;min-width:2px;height:var(--h);background:var(--bar-off);border-radius:99px;transition:background .4s}
+.wave span.on{background:var(--busy)}
+.wave.indet span{animation:ripple 1.3s ease-in-out infinite;animation-delay:calc(var(--i) * 45ms);background:var(--busy);opacity:.35}
+@keyframes ripple{0%,100%{transform:scaleY(.35);opacity:.3}50%{transform:scaleY(1);opacity:1}}
+.wave.still span{background:var(--bar-off)}
+
+/* ---- upload ---- */
+.upload{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(1.5rem,5vw,4rem);align-items:start}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;min-height:21rem;border:1.5px dashed var(--line);border-radius:14px;padding:2rem 1.5rem;text-align:center;background:var(--surface);cursor:pointer;font-weight:400;margin:0;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop .wave{width:min(15rem,70%);height:3.4rem}
+.drop.has .wave span{background:var(--accent)}
+.drop strong{font:600 1.15rem var(--display);display:block}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.check{display:flex;gap:.65rem;align-items:flex-start;font-weight:400;margin:0}
+.check input{margin-top:.4rem;accent-color:var(--accent)}
+.progress{height:6px;background:var(--rule);border-radius:3px;overflow:hidden;margin-top:1rem}
+.progress>i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.banner{padding:.85rem 1.1rem;border-radius:8px;margin:1rem 0;border:1px solid}
+.banner.err{background:color-mix(in srgb,var(--bad) 10%,var(--surface));color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.banner.err strong{display:block}
+
+/* ---- processing ---- */
+.working{margin:1.75rem 0 0;padding:1.4rem 0 1.2rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.working-top{display:flex;gap:.7rem;align-items:baseline;justify-content:space-between;margin-bottom:.9rem;flex-wrap:wrap}
+.working-top b{font:600 1.05rem var(--display)}
+.working .hint{display:block;margin-top:.8rem}
+@media (prefers-reduced-motion:reduce){.wave.indet span{animation:none;transform:none;opacity:.55}.status::before{animation:none}.wave span,.progress>i{transition:none}}
+
+/* ---- meeting detail ---- */
+.mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:1.25rem 2rem;flex-wrap:wrap}
+.mhead h1{max-width:46rem}
+.mhead .status{margin-top:.6rem}
+.when{color:var(--muted);margin:.7rem 0 0;font-size:.95rem}
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 17rem;grid-template-areas:"main rail";gap:clamp(1.5rem,4vw,4rem);margin-top:1.75rem;align-items:start}
+.main{grid-area:main;min-width:0}
+.rail{grid-area:rail;position:sticky;top:5rem;display:flex;flex-direction:column;gap:1.5rem}
+.rail .acts{display:flex;flex-direction:column;gap:.55rem}
+.rail .acts button{width:100%}
+.facts{margin:0;font-size:.9rem;border-top:1px solid var(--line)}
+.facts div{display:grid;grid-template-columns:5.5rem 1fr;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--rule)}
+.facts dt{color:var(--muted)} .facts dd{margin:0;overflow-wrap:anywhere}
+.tabs{display:flex;gap:1.6rem;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;border-radius:0;color:var(--muted);padding:.7rem 0;margin-bottom:-1px;font-weight:600;font-size:.98rem}
+.tabs button:hover{color:var(--ink);filter:none}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.panel{padding-top:1.75rem}
+.sec{display:grid;grid-template-columns:9.5rem minmax(0,1fr);gap:.4rem 1.5rem;padding:1.3rem 0;border-bottom:1px solid var(--rule);max-width:50rem}
+.sec:first-child{padding-top:0}
+.sec:last-child{border-bottom:0}
+.sec h3{color:var(--muted);font-weight:600;padding-top:.15rem}
+.sec p{margin:0}
+.sec ul{margin:0;padding-left:1.15rem}
+.sec li{margin-bottom:.5rem;padding-left:.2rem}
+.sec li::marker{color:var(--accent)}
+.sec li:last-child{margin-bottom:0}
+.lead{font-size:1.18rem;line-height:1.55;letter-spacing:-.005em}
+.tone{margin-top:.6rem !important;color:var(--muted);font-size:.9rem}
+.tally{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;font-size:.92rem;color:var(--muted)}
+.tally .meter{flex:0 1 11rem;height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.tally .meter i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.scroll{overflow-x:auto}
+.ledger{width:100%;border-collapse:collapse}
+.ledger th,.ledger td{text-align:left;padding:.8rem .75rem .8rem 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.ledger th{font-size:.84rem;color:var(--muted);font-weight:600;border-bottom-color:var(--line)}
+.ledger td:nth-child(2){min-width:14rem}
+.ledger td.done{color:var(--muted);text-decoration:line-through}
+.ledger input{width:1.15rem;height:1.15rem;accent-color:var(--accent);margin-top:.2rem}
+.find{max-width:22rem;margin-bottom:1rem}
+.count{margin-left:.5rem}
+.minutes{max-width:46rem}
+.minutes .seg{display:grid;grid-template-columns:4.2rem 1fr;gap:1rem;padding:.6rem .5rem;margin:0 -.5rem;border-radius:6px;transition:background .12s}
+.minutes .seg:hover{background:var(--wash)}
+.minutes .spk{font-weight:600}
+.minutes time{font:500 .85rem var(--sans);font-variant-numeric:tabular-nums;color:var(--accent);padding-top:.12rem;text-align:right;border-right:2px solid var(--accent);padding-right:.8rem}
+.minutes .seg[hidden]{display:none}
+.minutes mark{background:color-mix(in srgb,var(--accent) 28%,transparent);color:inherit;border-radius:3px;padding:0 .1em}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);width:min(30rem,92vw);padding:1.6rem;box-shadow:0 24px 60px rgba(8,16,20,.28)}
+dialog h2{font:700 1.4rem var(--display);margin:0 0 .4rem}
+dialog::backdrop{background:rgba(8,16,20,.55)}
+dialog .btns{display:flex;gap:.6rem;justify-content:flex-end}
+#toast{position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%) translateY(.5rem);background:var(--ink);color:var(--paper);padding:.7rem 1.2rem;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:90vw;z-index:20;font-size:.92rem}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:860px){
+  .detail{grid-template-columns:minmax(0,1fr);grid-template-areas:"rail" "main"}
+  .rail{position:static}
+  .rail .acts{flex-direction:row;flex-wrap:wrap}
+  .rail .acts button{width:auto;flex:1 1 9rem}
+  .upload{grid-template-columns:minmax(0,1fr)}
+  .drop{min-height:14rem}
+}
+@media (max-width:560px){
+  .sec{grid-template-columns:minmax(0,1fr);gap:.5rem}
+  .minutes .seg{grid-template-columns:3.4rem 1fr;gap:.7rem}
+  .topbar{gap:.5rem} .topbar nav a{padding:.4rem .6rem;white-space:nowrap}
+  .topbar button{white-space:nowrap;padding:.5rem .8rem}
+  .brand{font-size:0;gap:0} .brand svg{width:1.9rem;height:1.9rem}
+  .row{margin:0;padding-left:0;padding-right:0}
+  .tabs{gap:1.1rem}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#/" aria-label="Meeting Assistant home">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="bg" width="32" height="32" rx="8"/><g><rect x="6" y="13" width="3" height="6" rx="1.5"/><rect x="11.5" y="8" width="3" height="16" rx="1.5"/><rect x="17" y="11" width="3" height="10" rx="1.5"/><rect x="22.5" y="14" width="3" height="4" rx="1.5"/></g></svg>
+    Meeting Assistant
+  </a>
+  <nav aria-label="Main">
+    <a href="#/" data-nav="list">Meetings</a>
+    <a href="#/upload" data-nav="upload">New meeting</a>
+    <a href="#/live" data-nav="live">Live</a>
+  </nav>
+  <button class="ghost" id="keyBtn" type="button" title="Only needed if the server has an API key set">API key</button>
+</header>
+<main id="view" aria-live="polite"></main>
+
+<dialog id="emailDlg">
+  <form method="dialog" id="emailForm">
+    <h2>Email this summary</h2>
+    <p class="muted" style="margin:0 0 1.2rem">The summary and a PDF report go to everyone listed.</p>
+    <div class="field">
+      <label for="emailTo">Recipients <span class="hint">(separate with commas)</span></label>
+      <textarea id="emailTo" rows="3" placeholder="name@company.com, other@company.com"></textarea>
+    </div>
+    <div class="btns">
+      <button type="button" class="ghost" id="emailCancel">Cancel</button>
+      <button type="submit" id="emailSend">Send email</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+const view = document.getElementById("view");
+const BUSY = ["queued", "transcribing", "summarizing"];
+const STATUS = {uploaded:"Uploaded", queued:"Queued", transcribing:"Transcribing", transcribed:"Transcribed", summarizing:"Summarizing", completed:"Ready", failed:"Failed"};
+const LANGS = [["", "Detect automatically"], ["en","English"], ["hi","Hindi"], ["te","Telugu"], ["ta","Tamil"], ["es","Spanish"], ["fr","French"], ["de","German"]];
+let apiKey = sessionStorage.getItem("apiKey") || "";
+let liveCleanup = null, routeToken = 0, pollTimer = null, currentTab = "summary", shown = {id: null, status: null};
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate = iso => new Date(iso).toLocaleString([], {dateStyle:"medium", timeStyle:"short"});
+const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+" MB" : Math.max(1, Math.round(b/1024))+" KB";
+const status = st => `<span class="status ${esc(st)}">${esc(STATUS[st] || st)}</span>`;
+
+// Waveform: a fixed, natural-looking bar pattern. `pct` fills it as progress; null makes it ripple.
+const BARS = 44;
+function waveBars(pct) {
+  let out = "";
+  for (let i = 0; i < BARS; i++) {
+    const h = Math.round(22 + 78 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.55 + 1)));
+    const on = pct !== null && pct !== undefined && i < (pct / 100) * BARS;
+    out += `<span class="${on ? "on" : ""}" style="--i:${i};--h:${h}%"></span>`;
+  }
+  return out;
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+async function api(path, {json, raw, ...opts} = {}) {
+  const headers = {...(opts.headers || {})};
+  if (apiKey) headers["X-API-Key"] = apiKey;
+  if (json !== undefined) { headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(json); }
+  const res = await fetch(path, {...opts, headers});
+  if (!res.ok) {
+    let msg = `Request failed (${res.status})`;
+    try { const d = await res.json(); msg = typeof d.detail === "string" ? d.detail : (d.detail?.[0]?.msg || msg); } catch {}
+    if (res.status === 401) msg = "This server needs an API key. Use the API key button at the top right.";
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  return raw ? res : res.json();
+}
+
+document.getElementById("keyBtn").onclick = () => {
+  const k = prompt("API key for this server (kept for this browser tab only):", apiKey);
+  if (k !== null) { apiKey = k.trim(); sessionStorage.setItem("apiKey", apiKey); route(); }
+};
+
+// ---------- routing ----------
+function route() {
+  if (liveCleanup) { liveCleanup(); liveCleanup = null; }  // leaving the live page stops the microphone
+  clearTimeout(pollTimer);
+  shown = {id: null, status: null};
+  const token = ++routeToken;
+  const hash = location.hash || "#/";
+  const m = hash.match(/^#\/meeting\/(\d+)$/);
+  document.querySelectorAll("[data-nav]").forEach(a => a.removeAttribute("aria-current"));
+  window.scrollTo(0, 0);
+  if (m) { currentTab = "summary"; renderMeeting(+m[1], token); return; }
+  if (hash === "#/live") { document.querySelector('[data-nav=live]').setAttribute("aria-current","page"); renderLive(); return; }
+  if (hash === "#/upload") { document.querySelector('[data-nav=upload]').setAttribute("aria-current","page"); renderUpload(); return; }
+  document.querySelector('[data-nav=list]').setAttribute("aria-current","page");
+  renderList();
+}
+window.addEventListener("hashchange", route);
+route();
+
+// ---------- meeting list ----------
+function renderList() {
+  view.innerHTML = `
+    <div class="page-head"><div><h1>Meetings</h1><p class="muted" id="total">&nbsp;</p></div><a class="btn" href="#/upload">New meeting</a></div>
+    <div class="searchbar">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
+      <input id="q" type="search" aria-label="Search meetings" placeholder="Search titles, transcripts, summaries and action items">
+    </div>
+    <div id="list" class="list"></div>`;
+  const q = document.getElementById("q");
+  let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => loadList(q.value), 250); });
+  loadList("");
+}
+
+async function loadList(query) {
+  const list = document.getElementById("list");
+  try {
+    const data = await api(`/meetings?limit=100&q=${encodeURIComponent(query.trim())}`);
+    if (!document.getElementById("list")) return;
+    const total = document.getElementById("total");
+    if (total) total.textContent = query.trim()
+      ? `${data.total} ${data.total === 1 ? "match" : "matches"}`
+      : (data.total ? `${data.total} ${data.total === 1 ? "recording" : "recordings"}` : "");
+    if (!data.items.length) {
+      list.innerHTML = query.trim()
+        ? `<div class="empty"><strong>No meetings match “${esc(query)}”</strong>Try a different word, or a name from the meeting.</div>`
+        : `<div class="empty"><div class="wave still" aria-hidden="true">${waveBars(null)}</div><strong>No meetings yet</strong>
+             <a href="#/upload">Upload a recording</a> and get a summary with action items.</div>`;
+      return;
+    }
+    list.innerHTML = data.items.map(m => `
+      <a class="row" href="#/meeting/${m.id}">
+        <strong>${esc(m.title)}</strong>
+        ${status(m.status)}
+        <small>${esc(fmtDate(m.created_at))} &nbsp;&middot;&nbsp; ${esc(m.original_filename)}</small>
+      </a>`).join("");
+  } catch (e) { list.innerHTML = `<div class="banner err">${esc(e.message)}</div>`; }
+}
+
+// ---------- live transcription ----------
+const PCM_WORKLET = `class PcmTap extends AudioWorkletProcessor {
+  process(inputs) { const c = inputs[0][0]; if (c) this.port.postMessage(c.slice()); return true; }
+}
+registerProcessor("pcm-tap", PcmTap);`;
+
+function toPcm16(samples, inRate) {
+  let data = samples;
+  if (inRate !== 16000) {  // some browsers ignore the requested 16 kHz context rate: resample linearly
+    const ratio = inRate / 16000, n = Math.floor(samples.length / ratio);
+    data = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = i * ratio, i0 = Math.floor(x), i1 = Math.min(i0 + 1, samples.length - 1);
+      data[i] = samples[i0] + (samples[i1] - samples[i0]) * (x - i0);
+    }
+  }
+  const out = new Int16Array(data.length);
+  for (let i = 0; i < data.length; i++) { const v = Math.max(-1, Math.min(1, data[i])); out[i] = v < 0 ? v * 32768 : v * 32767; }
+  return out.buffer;
+}
+
+function renderLive() {
+  view.innerHTML = `
+    <div class="page-head"><div><h1>Live transcription</h1>
+      <p class="muted">Speak into your microphone and watch the transcript appear. When you stop, it is saved as a meeting.</p></div>
+      <a class="btn ghost" href="#/upload">Upload a recording instead</a></div>
+    <div class="upload">
+      <div>
+        <div class="field"><label for="lvTitle">Title <span class="hint">(optional)</span></label><input type="text" id="lvTitle" maxlength="255"></div>
+        <div class="field"><label for="lvPeople">Participants <span class="hint">(names or emails, comma-separated)</span></label><input type="text" id="lvPeople"></div>
+        <div class="field"><label for="lvLang">Spoken language</label>
+          <select id="lvLang">${LANGS.map(([v,n]) => `<option value="${v}">${n}</option>`).join("")}</select></div>
+        <div class="field"><label class="check"><input type="checkbox" id="lvAuto" checked>
+          <span>Summarize when I stop<br><span class="hint">Needs a microphone, and https or localhost.</span></span></label></div>
+        <button type="button" id="lvBtn">Start recording</button>
+        <p class="muted" id="lvStatus" role="status">Not recording.</p>
+        <div id="lvErr"></div>
+      </div>
+      <div class="minutes" id="lvText" aria-live="polite"></div>
+    </div>`;
+  const $ = id => document.getElementById(id);
+  const btn = $("lvBtn"), statusEl = $("lvStatus"), box = $("lvText");
+  let ws = null, ctx = null, stream = null, node = null, timer = null, saving = false, recording = false;
+
+  const showError = msg => { $("lvErr").innerHTML = `<div class="banner err">${esc(msg)}</div>`; };
+  const stopAudio = () => {
+    clearInterval(timer);
+    try { node?.disconnect(); } catch {}
+    stream?.getTracks().forEach(t => t.stop());
+    ctx?.close().catch(() => {});
+    node = stream = ctx = null;
+  };
+  liveCleanup = () => { stopAudio(); if (ws && ws.readyState < 2) ws.close(); };  // the server saves what it already has
+
+  function beginCapture() {
+    const src = ctx.createMediaStreamSource(stream);
+    node = new AudioWorkletNode(ctx, "pcm-tap");
+    let parts = [], count = 0;
+    node.port.onmessage = e => {
+      parts.push(e.data); count += e.data.length;
+      if (count < 4096 || !ws || ws.readyState !== 1) return;
+      const merged = new Float32Array(count); let o = 0;
+      for (const p of parts) { merged.set(p, o); o += p.length; }
+      parts = []; count = 0;
+      ws.send(toPcm16(merged, ctx.sampleRate));
+    };
+    src.connect(node); node.connect(ctx.destination);
+    recording = true; btn.disabled = false; btn.textContent = "Stop and save";
+    const t0 = Date.now();
+    timer = setInterval(() => { statusEl.textContent = `Recording ${fmtTime((Date.now() - t0) / 1000)}`; }, 500);
+  }
+
+  async function start() {
+    $("lvErr").innerHTML = ""; box.innerHTML = ""; btn.disabled = true;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access needs https or localhost.");
+      stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true}});
+      ctx = new AudioContext({sampleRate: 16000});
+      await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([PCM_WORKLET], {type: "application/javascript"})));
+    } catch (e) {
+      stopAudio(); btn.disabled = false;
+      showError(e.name === "NotAllowedError" ? "Microphone permission was denied." : e.message);
+      return;
+    }
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${scheme}://${location.host}/ws/live${apiKey ? "?api_key=" + encodeURIComponent(apiKey) : ""}`);
+    statusEl.textContent = "Connecting…";
+    ws.onopen = () => ws.send(JSON.stringify({title: $("lvTitle").value, participants: $("lvPeople").value, language: $("lvLang").value || null}));
+    ws.onmessage = async ev => {
+      const m = JSON.parse(ev.data);
+      if (m.type === "ready") beginCapture();
+      else if (m.type === "segments") {
+        box.insertAdjacentHTML("beforeend", m.segments.map(g => `<div class="seg"><time>${fmtTime(g.start)}</time><span>${esc(g.text)}</span></div>`).join(""));
+        box.lastElementChild?.scrollIntoView({block: "nearest"});
+      } else if (m.type === "warning") toast(m.detail);
+      else if (m.type === "error") { stopAudio(); showError(m.detail); btn.disabled = false; btn.textContent = "Start recording"; statusEl.textContent = "Not recording."; saving = false; recording = false; }
+      else if (m.type === "done") {
+        liveCleanup = null; toast("Meeting saved");
+        if ($("lvAuto")?.checked) { try { await api(`/meeting/${m.meeting_id}/process`, {method: "POST"}); } catch (e) { toast(e.message); } }
+        location.hash = `#/meeting/${m.meeting_id}`;
+      }
+    };
+    ws.onerror = () => showError("Could not connect to the live transcription service.");
+    ws.onclose = () => { if (recording && !saving) { stopAudio(); recording = false; btn.disabled = false; btn.textContent = "Start recording"; statusEl.textContent = "Connection closed."; } };
+  }
+
+  btn.onclick = () => {
+    if (!recording) { start(); return; }
+    saving = true; recording = false; btn.disabled = true; btn.textContent = "Saving…";
+    statusEl.textContent = "Finishing the transcript…";
+    stopAudio();
+    ws.send(JSON.stringify({type: "stop"}));
+  };
+}
+
+// ---------- upload ----------
+function renderUpload() {
+  view.innerHTML = `
+    <div class="page-head"><div><h1>New meeting</h1><p class="muted">Upload a recording and get a summary, decisions and action items.</p></div><a class="btn ghost" href="#/live">Record live instead</a></div>
+    <form id="upForm" class="upload">
+      <label class="drop" id="drop">
+        <div class="wave still" aria-hidden="true">${waveBars(null)}</div>
+        <span><strong id="dropTitle">Drop a recording here</strong><span class="hint" id="dropText">or click to choose an MP3, WAV or MP4 file</span></span>
+        <input type="file" id="file" accept=".mp3,.wav,.mp4,audio/mpeg,audio/wav,video/mp4">
+      </label>
+      <div>
+        <div class="field"><label for="title">Title <span class="hint">(optional, otherwise made from the content)</span></label>
+          <input type="text" id="title" maxlength="255"></div>
+        <div class="field"><label for="people">Participants <span class="hint">(names or emails, comma-separated)</span></label>
+          <input type="text" id="people" placeholder="Priya <priya@company.com>, ravi@company.com"></div>
+        <div class="field"><label for="lang">Spoken language</label>
+          <select id="lang">${LANGS.map(([v,n]) => `<option value="${v}">${n}</option>`).join("")}</select></div>
+        <div class="field"><label class="check"><input type="checkbox" id="auto" checked>
+          <span>Transcribe and summarize right away<br><span class="hint">Turn off to upload now and process later.</span></span></label></div>
+        <button type="submit" id="upBtn">Upload meeting</button>
+        <div class="progress" id="prog" hidden><i></i></div>
+        <div id="upErr"></div>
+      </div>
+    </form>`;
+  const file = document.getElementById("file"), drop = document.getElementById("drop");
+  const showName = () => {
+    const f = file.files[0]; if (!f) return;
+    document.getElementById("dropTitle").textContent = f.name;
+    document.getElementById("dropText").textContent = `${fmtSize(f.size)}. Click to choose a different file.`;
+    drop.classList.add("has");
+  };
+  file.onchange = showName;
+  ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) { file.files = e.dataTransfer.files; showName(); } });
+
+  document.getElementById("upForm").onsubmit = async e => {
+    e.preventDefault();
+    const err = document.getElementById("upErr"), btn = document.getElementById("upBtn");
+    err.innerHTML = "";
+    const f = file.files[0];
+    if (!f) { err.innerHTML = `<div class="banner err">Choose a recording first.</div>`; return; }
+    if (!/\.(mp3|wav|mp4)$/i.test(f.name)) { err.innerHTML = `<div class="banner err">Only MP3, WAV and MP4 files are supported.</div>`; return; }
+    const fd = new FormData();
+    fd.append("file", f);
+    fd.append("title", document.getElementById("title").value);
+    fd.append("participants", document.getElementById("people").value);
+    fd.append("language", document.getElementById("lang").value);
+    fd.append("auto_process", document.getElementById("auto").checked ? "true" : "false");
+    btn.disabled = true; btn.textContent = "Uploading…";
+    const prog = document.getElementById("prog"); prog.hidden = false;
+    try {
+      const m = await sendUpload(fd, r => prog.firstElementChild.style.width = Math.round(r*100) + "%");
+      location.hash = `#/meeting/${m.id}`;
+    } catch (ex) {
+      err.innerHTML = `<div class="banner err">${esc(ex.message)}</div>`;
+      btn.disabled = false; btn.textContent = "Upload meeting"; prog.hidden = true;
+    }
+  };
+}
+
+function sendUpload(fd, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/upload-meeting");
+    if (apiKey) xhr.setRequestHeader("X-API-Key", apiKey);
+    xhr.upload.onprogress = e => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => {
+      let body = {}; try { body = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body);
+      reject(new Error(xhr.status === 401 ? "This server needs an API key. Use the API key button at the top right."
+        : typeof body.detail === "string" ? body.detail : `Upload failed (${xhr.status}).`));
+    };
+    xhr.onerror = () => reject(new Error("Could not reach the server. Check your connection and try again."));
+    xhr.send(fd);
+  });
+}
+
+// ---------- meeting detail ----------
+async function renderMeeting(id, token) {
+  let m;
+  try { m = await api(`/meeting/${id}`); }
+  catch (e) { if (token === routeToken) view.innerHTML = `<div class="banner err">${esc(e.message)}</div><a href="#/">Back to meetings</a>`; return; }
+  if (token !== routeToken) return;
+  const busy = BUSY.includes(m.status);
+  if (busy && shown.id === id && shown.status === m.status && document.getElementById("busy")) updateBusy(m);
+  else drawMeeting(m);
+  shown = {id, status: m.status};
+  if (busy) pollTimer = setTimeout(() => renderMeeting(id, token), 1500);
+}
+
+function busyInfo(m) {
+  if (m.status === "transcribing") {
+    if (typeof m.progress === "number") { const pct = Math.round(m.progress * 100); return {title: "Transcribing", text: `${pct}%`, pct}; }
+    return {title: "Getting ready", text: "The first run downloads the speech model, which can take a few minutes.", pct: null};
+  }
+  if (m.status === "summarizing") return {title: "Writing the summary", text: "Almost done.", pct: null};
+  return {title: "Waiting to start", text: "Your recording is in the queue.", pct: null};
+}
+
+function busyHtml(m) {
+  const {title, text, pct} = busyInfo(m);
+  return `<div class="working" id="busy">
+    <div class="working-top"><b id="busyTitle">${esc(title)}</b><span class="muted" id="busyText">${esc(text)}</span></div>
+    <div class="wave${pct === null ? " indet" : ""}" id="bar" role="progressbar" aria-label="Processing progress" aria-valuemin="0" aria-valuemax="100"${pct === null ? "" : ` aria-valuenow="${pct}"`}>${waveBars(pct)}</div>
+    <span class="hint">Long recordings can take several minutes. This page updates by itself.</span></div>`;
+}
+
+function updateBusy(m) {
+  const {title, text, pct} = busyInfo(m);
+  document.getElementById("busyTitle").textContent = title;
+  document.getElementById("busyText").textContent = text;
+  const bar = document.getElementById("bar");
+  bar.classList.toggle("indet", pct === null);
+  if (pct === null) bar.removeAttribute("aria-valuenow"); else bar.setAttribute("aria-valuenow", pct);
+  bar.querySelectorAll("span").forEach((s, i) => s.classList.toggle("on", pct !== null && i < (pct / 100) * BARS));
+}
+
+function section(title, body) { return `<section class="sec"><h3>${title}</h3><div>${body}</div></section>`; }
+function listSection(title, items, empty) {
+  return section(title, items?.length ? `<ul>${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>` : `<p class="muted">${empty}</p>`);
+}
+
+function tally(items) {
+  const done = items.filter(a => a.completed).length;
+  return `<span id="tallyText">${done} of ${items.length} done</span>`;
+}
+
+function drawMeeting(m) {
+  const busy = BUSY.includes(m.status), s = m.summary, t = m.transcript;
+  const needsProcessing = !busy && (!t || !s);
+  const people = m.participants.map(p => esc(p.name || p.email)).join(", ");
+  const segs = t?.segments?.length
+    ? t.segments.map(g => `<div class="seg"><time>${fmtTime(g.start)}</time><span>${g.speaker ? `<strong class="spk">${esc(g.speaker)}:</strong> ` : ""}${esc(g.text)}</span></div>`).join("")
+    : (t ? `<div class="seg"><time></time><span>${esc(t.text)}</span></div>` : "");
+  const items = m.action_items;
+
+  view.innerHTML = `
+    <a href="#/" class="back">&larr; All meetings</a>
+    <div class="mhead"><h1>${esc(m.title)}</h1>${status(m.status)}</div>
+    <p class="when">${esc(fmtDate(m.created_at))}</p>
+    ${busy ? busyHtml(m) : ""}
+    ${m.status === "failed" && m.error_message ? `<div class="banner err"><strong>Processing stopped.</strong> ${esc(m.error_message)}</div>` : ""}
+    <div class="detail">
+      <aside class="rail" aria-label="Actions and details">
+        <div class="acts">
+          ${needsProcessing ? `<button data-act="process">${m.status === "failed" ? "Retry processing" : "Transcribe and summarize"}</button>` : ""}
+          ${s ? `<button data-act="pdf">Download PDF</button><button class="ghost" data-act="email">Email summary</button>
+                <button class="ghost" data-act="regen">Regenerate summary</button>
+                <button class="ghost" data-act="ics">Add to calendar</button>
+                ${items.length ? `<button class="ghost" data-act="jira">Export to Jira</button><button class="ghost" data-act="trello">Export to Trello</button>` : ""}` : ""}
+          <button class="link" data-act="delete">Delete meeting</button>
+        </div>
+        <dl class="facts">
+          <div><dt>Recording</dt><dd>${esc(m.original_filename)}<br><span class="muted">${fmtSize(m.file_size)}</span></dd></div>
+          ${t?.duration_seconds ? `<div><dt>Length</dt><dd>${esc(fmtTime(t.duration_seconds))}</dd></div>` : ""}
+          ${m.language ? `<div><dt>Language</dt><dd>${esc(m.language)}</dd></div>` : ""}
+          ${people ? `<div><dt>People</dt><dd>${people}</dd></div>` : ""}
+        </dl>
+      </aside>
+      <div class="main">
+        <div class="tabs" role="tablist">
+          ${[["summary","Summary"],["actions",`Action items${items.length ? " (" + items.length + ")" : ""}`],["transcript","Transcript"]]
+            .map(([k,n]) => `<button role="tab" data-tab="${k}" aria-selected="${k===currentTab}">${n}</button>`).join("")}
+        </div>
+        <div class="panel" data-panel="summary" ${currentTab!=="summary"?"hidden":""}>
+          ${s ? section("Overview", `<p class="lead">${esc(s.overview)}</p>${s.sentiment ? `<p class="tone">Overall tone: ${esc(s.sentiment)}</p>` : ""}`)
+               + listSection("Key points", s.key_points, "Nothing recorded.")
+               + listSection("Decisions", s.decisions, "No decisions were recorded.")
+               + listSection("Risks", s.risks, "No risks were raised.")
+             : `<p class="muted">${busy ? "The summary will appear here when processing finishes." : "No summary yet. Use “Transcribe and summarize” to create one."}</p>`}
+        </div>
+        <div class="panel" data-panel="actions" ${currentTab!=="actions"?"hidden":""}>
+          ${items.length ? `<div class="tally">${tally(items)}<span class="meter"><i id="tallyBar" style="width:${Math.round(100*items.filter(a=>a.completed).length/items.length)}%"></i></span></div>
+            <div class="scroll"><table class="ledger"><thead><tr><th>Done</th><th>Task</th><th>Owner</th><th>Due</th></tr></thead><tbody>
+            ${items.map(a => `<tr><td><input type="checkbox" data-item="${a.id}" aria-label="Mark done" ${a.completed ? "checked" : ""}></td>
+              <td class="${a.completed ? "done" : ""}">${esc(a.task)}</td><td>${esc(a.owner || "–")}</td><td>${esc(a.due_date || "–")}</td></tr>`).join("")}
+            </tbody></table></div>` : `<p class="muted">No action items were found in this meeting.</p>`}
+        </div>
+        <div class="panel" data-panel="transcript" ${currentTab!=="transcript"?"hidden":""}>
+          ${t ? `<div class="find"><label class="hint" for="tfind">Find in transcript<span class="count" id="tcount"></span></label><input type="search" id="tfind"></div>
+                 <div class="minutes" id="minutes">${segs}</div>`
+              : `<p class="muted">${busy ? "The transcript will appear here when transcription finishes." : "No transcript yet."}</p>`}
+        </div>
+      </div>
+    </div>`;
+
+  view.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
+    currentTab = b.dataset.tab;
+    view.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x === b));
+    view.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== currentTab);
+  });
+  view.querySelectorAll("[data-act]").forEach(b => b.onclick = () => ACTIONS[b.dataset.act](m, b));
+  view.querySelectorAll("[data-item]").forEach(c => c.onchange = async () => {
+    try { await api(`/action-items/${c.dataset.item}`, {method:"PATCH", json:{completed:c.checked}});
+          c.closest("tr").children[1].classList.toggle("done", c.checked);
+          const boxes = [...view.querySelectorAll("[data-item]")], done = boxes.filter(x => x.checked).length;
+          document.getElementById("tallyText").textContent = `${done} of ${boxes.length} done`;
+          document.getElementById("tallyBar").style.width = Math.round(100 * done / boxes.length) + "%"; }
+    catch (e) { c.checked = !c.checked; toast(e.message); }
+  });
+  const find = document.getElementById("tfind");
+  if (find) {
+    const segEls = [...document.querySelectorAll("#minutes .seg")];
+    segEls.forEach(el => el.lastElementChild.dataset.raw = el.lastElementChild.textContent);
+    find.oninput = () => {
+      const q = find.value.trim().toLowerCase(); let hits = 0;
+      segEls.forEach(el => {
+        const span = el.lastElementChild, raw = span.dataset.raw, i = q ? raw.toLowerCase().indexOf(q) : -1;
+        el.hidden = !!q && i === -1;
+        if (!q || i === -1) { span.textContent = raw; return; }
+        hits++;
+        let out = "", from = 0, at;
+        while ((at = raw.toLowerCase().indexOf(q, from)) !== -1) {
+          out += esc(raw.slice(from, at)) + "<mark>" + esc(raw.slice(at, at + q.length)) + "</mark>"; from = at + q.length;
+        }
+        span.innerHTML = out + esc(raw.slice(from));
+      });
+      document.getElementById("tcount").textContent = q ? ` · ${hits} ${hits === 1 ? "passage" : "passages"}` : "";
+    };
+  }
+}
+
+async function withBusy(btn, label, fn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+  try { await fn(); } catch (e) { toast(e.message); } finally { btn.disabled = false; btn.textContent = old; }
+}
+
+function exportTasks(m, btn, service, label) {
+  const open = m.action_items.filter(a => !a.completed).length;
+  if (!confirm(`Create ${open} ${open === 1 ? "task" : "tasks"} in ${label}? Exporting twice creates duplicates.`)) return;
+  return withBusy(btn, "Exporting…", async () => {
+    const r = await api(`/meeting/${m.id}/export/${service}`, {method: "POST", json: {}});
+    toast(`Created ${r.exported.length} in ${label}${r.failed.length ? `, ${r.failed.length} failed` : ""}`);
+  });
+}
+
+const ACTIONS = {
+  process: (m, b) => withBusy(b, "Starting…", async () => { await api(`/meeting/${m.id}/process`, {method:"POST"}); route(); }),
+  regen: (m, b) => withBusy(b, "Summarizing…", async () => { await api("/summarize", {method:"POST", json:{meeting_id:m.id}}); toast("Summary regenerated"); route(); }),
+  pdf: (m, b) => withBusy(b, "Preparing…", async () => {
+    const blob = await (await api(`/meeting/${m.id}/export/pdf`, {raw:true})).blob();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `meeting_${m.id}_summary.pdf`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }),
+  ics: (m, b) => withBusy(b, "Preparing…", async () => {
+    const blob = await (await api(`/meeting/${m.id}/export/calendar`, {raw:true})).blob();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `meeting_${m.id}.ics`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }),
+  jira: (m, b) => exportTasks(m, b, "jira", "Jira"),
+  trello: (m, b) => exportTasks(m, b, "trello", "Trello"),
+  email: m => {
+    const dlg = document.getElementById("emailDlg");
+    document.getElementById("emailTo").value = m.participants.filter(p => p.email).map(p => p.email).join(", ");
+    dlg.dataset.id = m.id; dlg.showModal();
+  },
+  delete: async m => {
+    if (!confirm(`Delete “${m.title}”, its recording, transcript and summary? This cannot be undone.`)) return;
+    try { await api(`/meeting/${m.id}`, {method:"DELETE"}); toast("Meeting deleted"); location.hash = "#/"; } catch (e) { toast(e.message); }
+  },
+};
+
+document.getElementById("emailCancel").onclick = () => document.getElementById("emailDlg").close();
+document.getElementById("emailForm").onsubmit = async e => {
+  e.preventDefault();
+  const dlg = document.getElementById("emailDlg"), btn = document.getElementById("emailSend");
+  const recipients = document.getElementById("emailTo").value.split(/[,;\s]+/).filter(Boolean);
+  if (!recipients.length) { toast("Enter at least one email address."); return; }
+  btn.disabled = true; btn.textContent = "Sending…";
+  try {
+    const r = await api(`/meeting/${dlg.dataset.id}/email`, {method:"POST", json:{recipients}});
+    dlg.close(); toast(`Summary emailed to ${r.sent_to.length} recipient${r.sent_to.length > 1 ? "s" : ""}`);
+  } catch (ex) { toast(ex.message); }
+  finally { btn.disabled = false; btn.textContent = "Send email"; }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+# One-command startup:  docker compose up --build   ->  http://localhost:8000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: meetings
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meetings}
+      POSTGRES_DB: meetings
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meetings -d meetings"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://meetings:${POSTGRES_PASSWORD:-meetings}@db:5432/meetings
+      LLM_MODEL: ${LLM_MODEL:-groq/llama-3.3-70b-versatile}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-}
+      DIARIZATION_ENABLED: ${DIARIZATION_ENABLED:-false}
+      HF_TOKEN: ${HF_TOKEN:-}
+      LIVE_WINDOW_SECONDS: ${LIVE_WINDOW_SECONDS:-8}
+      LIVE_MAX_MINUTES: ${LIVE_MAX_MINUTES:-120}
+      JIRA_BASE_URL: ${JIRA_BASE_URL:-}
+      JIRA_EMAIL: ${JIRA_EMAIL:-}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:-}
+      JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-}
+      JIRA_ISSUE_TYPE: ${JIRA_ISSUE_TYPE:-Task}
+      TRELLO_KEY: ${TRELLO_KEY:-}
+      TRELLO_TOKEN: ${TRELLO_TOKEN:-}
+      TRELLO_LIST_ID: ${TRELLO_LIST_ID:-}
+      API_KEY: ${API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-200}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+    volumes:
+      - uploads:/data/uploads
+      - logs:/app/logs
+      - whisper_cache:/home/appuser/.cache/whisper
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+  logs:
+  whisper_cache:
