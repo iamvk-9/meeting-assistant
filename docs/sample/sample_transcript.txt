@@ -1,0 +1,13 @@
+Priya: Good morning everyone. Thanks for joining the kickoff for the Acme Retail pilot.
+Anita: Thanks Priya. Our main goal is to launch the pilot in two stores by November fifteenth.
+Ravi: That is tight but doable. I suggest we use PostgreSQL for the data layer, and host everything on one cloud server.
+Anita: That works for us. We have approved a budget of twelve thousand dollars for the pilot.
+Priya: Great. So we have decided on three things. First, the launch date is November fifteenth. Second, we use PostgreSQL. Third, the budget is twelve thousand dollars.
+Ravi: One risk I want to flag. The payment vendor limits their A P I to one hundred requests per minute, which could slow down busy stores.
+Anita: Also, our store managers are only available for training in the first week of November, so the schedule leaves very little room for delay.
+Priya: Understood. Let us assign actions. Ravi, please set up the staging environment by November fifth.
+Ravi: Will do. I will have staging ready by November fifth.
+Priya: I will send the revised proposal to Anita by this Friday.
+Anita: And I will share the sample sales data with Ravi by Monday.
+Priya: One open question. Do we need single sign on for the store managers? Anita, can you check with your I T team?
+Anita: Yes, I will find out and let you know. Thanks everyone.
