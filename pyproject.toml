@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 120            # PEP 8 allows a team-agreed limit; 120 keeps SQL/LLM prompts readable
+target-version = "py310"
+src = ["backend", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]   # pycodestyle, pyflakes, isort, pyupgrade, bugbear
+ignore = ["B008"]                          # FastAPI's Depends()/Query() defaults are idiomatic
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "backend"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+files = ["backend/app"]

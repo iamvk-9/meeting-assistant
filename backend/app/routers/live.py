@@ -38,6 +38,11 @@ async def _send(ws: WebSocket, payload: dict[str, Any]) -> bool:
     except (RuntimeError, WebSocketDisconnect):  # client already gone
         return False
 
+async def _close(ws: WebSocket) -> None:
+    try:
+        await ws.close()
+    except Exception:  # client may already be gone
+        logger.debug("websocket already closed", exc_info=True)
 
 async def _close(ws: WebSocket) -> None:
     await _close(ws)

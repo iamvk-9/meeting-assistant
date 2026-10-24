@@ -24,10 +24,27 @@ class SummarizationError(Exception):
     pass
 
 
+_EMPTY_VALUES = {"", "null", "none", "n/a", "na", "nil", "-", "unknown", "unassigned", "tbd",
+                 "not stated", "not specified", "not mentioned", "no owner", "no deadline"}
+
 class ActionItemData(BaseModel):
     task: str
     owner: str | None = None
     due_date: str | None = None
+
+    @field_validator("task", mode="before")
+    @classmethod
+    def _strip_task(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("owner", "due_date", mode="before")
+    @classmethod
+    def _placeholder_to_none(cls, value: Any) -> Any:
+        """Models often write "null", "N/A" or "not stated" as text; store those as no value."""
+        if isinstance(value, str):
+            value = value.strip()
+            return None if value.lower().rstrip(".") in _EMPTY_VALUES else value
+        return value
 
 
 class SummaryData(BaseModel):

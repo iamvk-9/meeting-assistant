@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+ffmpeg_bin/
+data/
+logs/
+*.db
