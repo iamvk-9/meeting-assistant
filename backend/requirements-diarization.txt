@@ -1,0 +1,2 @@
+# Optional: speaker identification (set DIARIZATION_ENABLED=true and HF_TOKEN)
+pyannote.audio>=3.1
